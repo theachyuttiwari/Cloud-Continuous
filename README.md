@@ -1,1 +1,1 @@
-# Cloud-Continuos
+# Cloud-Continuous
