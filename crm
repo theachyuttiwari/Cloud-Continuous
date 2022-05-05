@@ -1,0 +1,118 @@
+#!/usr/bin/env node
+
+const crm = require('./lib');
+const package = require('./package.json');
+
+const help = () => {
+    console.log(
+`usage: crm COMMAND [filter]
+
+Available commands:
+
+ - reports:
+
+    i,interactions ... list of interactions.
+    com,companies .... list of companies.
+    con,contacts ..... list of contacts.
+    a,apps ........... list of apps.
+    about ............ all we know about a contact / company.
+    f,followup ....... list of required follow-up.
+
+ - data entry:
+
+    add-company ............... register a new company.
+    add-contact ............... register a new contact.
+    add-app ................... register a new app.
+    add-i,add-interaction ..... register a new customer interaction.
+
+    edit-company .............. edit an existing company.
+    edit-contact .............. edit an existing contact.
+    edit-app .................. edit an existing app.
+    edit-i,edit-interaction ... edit an existing interaction.
+    done ...................... remove follow-up date from interaction.
+
+ - email:
+
+    template FILE .......... fill in values for an email template.
+    template-help .......... show the list of template fields.
+
+ - system:
+
+    init-crm ........ create data file in current directory.
+
+
+Customize output with environment variables:
+
+  CSV=1 ............... output tables in pseudo csv.
+
+`);
+};
+
+const version = () => {
+    console.log(package.version);
+};
+
+const commands = {
+    v: version,
+    version: version,
+    i: crm.interactions.query,
+    int: crm.interactions.query,
+    interactions: crm.interactions.query,
+    com: crm.companies.query,
+    company: crm.companies.query,
+    companies: crm.companies.query,
+    con: crm.contacts.query,
+    contact: crm.contacts.query,
+    contacts: crm.contacts.query,
+    a: crm.apps.query,
+    app: crm.apps.query,
+    apps: crm.apps.query,
+    f: crm.followups.query,
+    fol: crm.followups.query,
+    followup: crm.followups.query,
+    followups: crm.followups.query,
+    about: crm.about,
+    'add-company': crm.companies.add,
+    'add-contact': crm.contacts.add,
+    'add-interaction': crm.interactions.add,
+    'add-i': crm.interactions.add,
+    'add-app': crm.apps.add,
+    'edit-company': crm.companies.edit,
+    'edit-contact': crm.contacts.edit,
+    'edit-interaction': crm.interactions.edit,
+    'edit-i': crm.interactions.edit,
+    'edit-app': crm.apps.edit,
+    'done': crm.followups.done,
+    'template-help': crm.templates.help,
+    template: crm.templates.run,
+};
+
+// Make sure --<command> and -<command> work too
+Object.keys(commands).forEach((key) => {
+    commands[`-${key}`] = commands[key];
+    commands[`--${key}`] = commands[key];
+});
+
+if (process.argv[2] === 'init-crm') {
+    crm.data.initSync();
+    console.log('Done.');
+    process.exit(0);
+}
+
+const data = crm.data.loadSync();
+const command = commands[process.argv[2]];
+if (!command) {
+    help();
+    process.exit(1);
+}
+const filter = process.argv.slice(3).join(' ');
+(async function() {
+    try {
+        const report = await command(data, filter);
+        if (report && report.printAsText)
+            report.printAsText();
+    }
+    catch (e) {
+        console.error(e);
+    }
+})();
